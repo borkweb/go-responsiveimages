@@ -110,7 +110,16 @@ class GO_ResponsiveImages
 		}//end if
 
 		$doc = new DOMDocument();
-		$doc->loadHTML( $content );
+		try
+		{
+			$doc->loadHTML( $content );
+		}//end try
+		catch( Exception $e )
+		{
+			// unable to parse the content. Let's not do responsive images then.
+			return $content;
+		}//end catch
+
 		$xpath = new DOMXpath( $doc );
 
 		$images = $doc->getElementsByTagName( 'img' );
@@ -123,6 +132,8 @@ class GO_ResponsiveImages
 
 		// create a picture node once so we don't need to create it for every image
 		$picture_node = $doc->createElement( 'picture' );
+		$ie_fix_start = new DOMComment( '[if IE 9]><video style="display: none;"><![endif]' );
+		$ie_fix_end = new DOMComment( '[if IE 9]></video><![endif]' );
 
 		$image_sizes = get_intermediate_image_sizes();
 		$image_settings = array(
@@ -153,6 +164,14 @@ class GO_ResponsiveImages
 				$parent_class = $image_parent->getAttribute( 'class' );
 			}//end if
 
+			// find the current size of the image if it is set
+			$current_size = NULL;
+
+			if ( preg_match( '/size-([^\s]+)/', $image_class, $matches ) )
+			{
+				$current_size = $matches[1];
+			}//end if
+
 			// clone the picture node
 			$cloned_picture_node = $picture_node->cloneNode();
 
@@ -160,7 +179,7 @@ class GO_ResponsiveImages
 			$image->parentNode->replaceChild( $cloned_picture_node, $image );
 
 			// start IE 9 fix (IE doesn't like <source> elements outside of the video tag
-			$cloned_picture_node->appendChild( new DOMComment( '[if IE 9]><video style="display: none;"><![endif]' ) );
+			$cloned_picture_node->appendChild( $ie_fix_start->cloneNode() );
 
 			$large_source = $doc->createElement( 'source' );
 
@@ -168,11 +187,12 @@ class GO_ResponsiveImages
 			if (
 				FALSE !== strpos( $parent_class, 'aligncenter' )
 				|| FALSE !== strpos( $image_class, 'aligncenter' )
-			) {
+			)
+			{
 				$large_source->setAttribute( 'srcset', $this->get_image_srcset( $image_id, 'story-breakout' ) );
 				$large_source->setAttribute( 'media', '(min-width: 641px)' );
 				$cloned_picture_node->appendChild( $large_source );
-			}//end elseif
+			}//end if
 			elseif (
 				FALSE !== strpos( $image_class, 'alignleft' )
 				|| FALSE !== strpos( $image_class, 'alignright' )
@@ -182,7 +202,7 @@ class GO_ResponsiveImages
 			{
 				$large_source->setAttribute( 'srcset', $this->get_image_srcset( $image_id, 'story-cantilevered' ) );
 				$large_source->setAttribute( 'media', '(min-width: 970px)' );
-			}//end if
+			}//end elseif
 
 			$cloned_picture_node->appendChild( $large_source );
 
@@ -191,14 +211,15 @@ class GO_ResponsiveImages
 			$small_plus_source->setAttribute( 'media', '(min-width: 321px)' );
 			$cloned_picture_node->appendChild( $small_plus_source );
 
-			$size = 'story-small';
+			$size = $current_size ?: 'story-small';
 			$default_size = wp_get_attachment_image_src( $image_id, $size );
+			do_action( 'debug_robot', $size . ' :: ' . print_r( $default_size, TRUE ) );
 
 			$image->setAttribute( 'src', $default_size[0] );
 			$image->setAttribute( 'srcset', $this->get_image_srcset( $image_id, $size ) );
 
 			// end IE 9 fix (IE doesn't like <source> elements outside of the video tag
-			$cloned_picture_node->appendChild( new DOMComment( '[if IE 9]></video><![endif]' ) );
+			$cloned_picture_node->appendChild( $ie_fix_end->cloneNode() );
 
 			// add the image as a child of the picture node
 			$cloned_picture_node->appendChild( $image );
@@ -230,6 +251,7 @@ class GO_ResponsiveImages
 		$size_1x = wp_get_attachment_image_src( $image_id, $image_size );
 		$size_2x = wp_get_attachment_image_src( $image_id, "{$image_size}_go_responsiveimages_density_2x" );
 		$size_3x = wp_get_attachment_image_src( $image_id, "{$image_size}_go_responsiveimages_density_3x" );
+		do_action( 'debug_robot', print_r( $size_1x, TRUE ) );
 
 		return "{$size_1x[0]}, {$size_2x[0]} 2x, {$size_3x[0]} 3x";
 	}//end get_image_srcset
