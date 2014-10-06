@@ -162,55 +162,40 @@ class GO_ResponsiveImages
 			// start IE 9 fix (IE doesn't like <source> elements outside of the video tag
 			$cloned_picture_node->appendChild( new DOMComment( '[if IE 9]><video style="display: none;"><![endif]' ) );
 
+			$large_source = $doc->createElement( 'source' );
+
 			// @TODO: drive this if/elseif from a config
 			if (
-				(
-					FALSE === strpos( $parent_class, 'aligncenter' )
-					&& (
-						FALSE !== strpos( $image_class, 'alignleft' )
-						|| FALSE !== strpos( $image_class, 'alignleft' )
-					)
-				)
+				FALSE !== strpos( $parent_class, 'aligncenter' )
+				|| FALSE !== strpos( $image_class, 'aligncenter' )
+			) {
+				$large_source->setAttribute( 'srcset', $this->get_image_srcset( $image_id, 'story-breakout' ) );
+				$large_source->setAttribute( 'media', '(min-width: 641px)' );
+				$cloned_picture_node->appendChild( $large_source );
+			}//end elseif
+			elseif (
+				FALSE !== strpos( $image_class, 'alignleft' )
+				|| FALSE !== strpos( $image_class, 'alignright' )
 				|| FALSE !== strpos( $parent_class, 'alignleft' )
 				|| FALSE !== strpos( $parent_class, 'alignright' )
 			)
 			{
-				$large_source = $doc->createElement( 'source' );
 				$large_source->setAttribute( 'srcset', $this->get_image_srcset( $image_id, 'story-cantilevered' ) );
 				$large_source->setAttribute( 'media', '(min-width: 970px)' );
-				$cloned_picture_node->appendChild( $large_source );
-
-				$small_plus_source = $doc->createElement( 'source' );
-				$small_plus_source->setAttribute( 'srcset', $this->get_image_srcset( $image_id, 'story-small-plus' ) );
-				$small_plus_source->setAttribute( 'media', '(min-width: 321px)' );
-				$cloned_picture_node->appendChild( $small_plus_source );
-
-				$size = 'story-small';
-				$default_size = wp_get_attachment_image_src( $image_id, $size );
-
-				$image->setAttribute( 'src', $default_size[0] );
-				$image->setAttribute( 'srcset', $this->get_image_srcset( $image_id, $size ) );
 			}//end if
-			elseif (
-				FALSE !== strpos( $parent_class, 'aligncenter' )
-				|| FALSE !== strpos( $image_class, 'aligncenter' )
-			) {
-				$large_source = $doc->createElement( 'source' );
-				$large_source->setAttribute( 'srcset', $this->get_image_srcset( $image_id, 'story-breakout' ) );
-				$large_source->setAttribute( 'media', '(min-width: 641px)' );
-				$cloned_picture_node->appendChild( $large_source );
 
-				$small_plus_source = $doc->createElement( 'source' );
-				$small_plus_source->setAttribute( 'srcset', $this->get_image_srcset( $image_id, 'story-small-plus' ) );
-				$small_plus_source->setAttribute( 'media', '(min-width: 321px)' );
-				$cloned_picture_node->appendChild( $small_plus_source );
+			$cloned_picture_node->appendChild( $large_source );
 
-				$size = 'story-small';
-				$default_size = wp_get_attachment_image_src( $image_id, $size );
+			$small_plus_source = $doc->createElement( 'source' );
+			$small_plus_source->setAttribute( 'srcset', $this->get_image_srcset( $image_id, 'story-small-plus' ) );
+			$small_plus_source->setAttribute( 'media', '(min-width: 321px)' );
+			$cloned_picture_node->appendChild( $small_plus_source );
 
-				$image->setAttribute( 'src', $default_size[0] );
-				$image->setAttribute( 'srcset', $this->get_image_srcset( $image_id, $size ) );
-			}//end elseif
+			$size = 'story-small';
+			$default_size = wp_get_attachment_image_src( $image_id, $size );
+
+			$image->setAttribute( 'src', $default_size[0] );
+			$image->setAttribute( 'srcset', $this->get_image_srcset( $image_id, $size ) );
 
 			// end IE 9 fix (IE doesn't like <source> elements outside of the video tag
 			$cloned_picture_node->appendChild( new DOMComment( '[if IE 9]></video><![endif]' ) );
