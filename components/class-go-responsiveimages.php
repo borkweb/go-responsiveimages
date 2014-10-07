@@ -3,6 +3,7 @@
 class GO_ResponsiveImages
 {
 	private $config = NULL;
+	private $attachment_id_cache_group = 'go-responsiveimages-attachment-id';
 
 	/**
 	 * constructor!
@@ -330,15 +331,23 @@ class GO_ResponsiveImages
 		$original_image_url = $image_url;
 
 		$image_url = preg_replace( '/^(.+?)(-\d+x\d+)?\.(jpg|jpeg|png|gif)((?:\?|#).+)?$/i', '$1.$3', $image_url );
-		$sql = "SELECT ID FROM {$wpdb->prefix}posts WHERE guid = '%s'";
-		$attachment_id = $wpdb->get_col( $wpdb->prepare( $sql, $image_url ) );
 
-		if ( empty( $attachment_id ) )
+		if ( ! ( $attachment_id = wp_cache_get( $image_url, $this->attachment_id_cache_group ) ) )
 		{
-			$attachment_id = $wpdb->get_col( $wpdb->prepare( $sql, $original_image_url ) );
+			$sql = "SELECT ID FROM {$wpdb->prefix}posts WHERE guid = '%s'";
+			$attachment_id = $wpdb->get_col( $wpdb->prepare( $sql, $image_url ) );
+
+			if ( empty( $attachment_id ) )
+			{
+				$attachment_id = $wpdb->get_col( $wpdb->prepare( $sql, $original_image_url ) );
+			}//end if
+
+			$attachment_id = empty( $attachment_id ) ? NULL : $attachment_id[0];
+
+			wp_cache_set( $image_url, $attachment_id, $this->attachment_id_cache_group );
 		}//end if
 
-		return empty( $attachment_id ) ? NULL : $attachment_id[0];
+		return $attachment_id;
 	}//end url_to_attachment_id
 }//end class
 
