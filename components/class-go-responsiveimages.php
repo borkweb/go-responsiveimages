@@ -24,18 +24,7 @@ class GO_ResponsiveImages
 		if ( ! $this->config )
 		{
 			$defaults = array(
-				'sources-by-class' => array(
-					'aligncenter' => array(
-						'(min-width:641px)' => 'breakout',
-						'(min-width:321px)' => 'device-medium',
-						'base' => 'device-small',
-					),
-					'alignleft,alignright' => array(
-						'(min-width:970px)' => 'cantilevered',
-						'(min-width:321px)' => 'device-medium',
-						'base' => 'device-small',
-					),
-				),
+				'sources-by-class' => array(),
 			);
 
 			$this->config = apply_filters( 'go_config', $defaults, 'go-responsiveimages' );
