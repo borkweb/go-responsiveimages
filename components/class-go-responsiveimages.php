@@ -2,6 +2,8 @@
 
 class GO_ResponsiveImages
 {
+	private $config = NULL;
+
 	/**
 	 * constructor!
 	 */
@@ -14,6 +16,39 @@ class GO_ResponsiveImages
 	}//end __construct
 
 	/**
+	 * Loads config settings
+	 */
+	public function config( $key = NULL )
+	{
+		if ( ! $this->config )
+		{
+			$defaults = array(
+				'sources-by-class' => array(
+					'aligncenter' => array(
+						'(min-width:641px)' => 'breakout',
+						'(min-width:321px)' => 'device-medium',
+						'base' => 'device-small',
+					),
+					'alignleft,alignright' => array(
+						'(min-width:970px)' => 'cantilevered',
+						'(min-width:321px)' => 'device-medium',
+						'base' => 'device-small',
+					),
+				),
+			);
+
+			$this->config = apply_filters( 'go_config', $defaults, 'go-responsiveimages' );
+		}//end if
+
+		if ( $key )
+		{
+			return isset( $this->config[ $key ] ) ? $this->config[ $key ] : NULL;
+		}//end if
+
+		return $this->config;
+	}//end config
+
+	/**
 	 * hooked to the init action
 	 */
 	public function init()
@@ -21,6 +56,9 @@ class GO_ResponsiveImages
 		$this->register_density_image_sizes();
 	}//end init
 
+	/**
+	 * hooked to the wp_enqueue_scripts action
+	 */
 	public function wp_enqueue_scripts()
 	{
 		$script_config = apply_filters( 'go_config', array( 'version' => 1 ), 'go-script-version' );
@@ -100,7 +138,6 @@ class GO_ResponsiveImages
 		}//end if
 
 		// disable the ability to load external entities. See: http://wordpress.tv/2013/08/09/mike-adams-three-security-issues-you-thought-youd-fixed/
-
 		libxml_disable_entity_loader( TRUE );
 
 		$doc = new DOMDocument();
@@ -128,9 +165,6 @@ class GO_ResponsiveImages
 		$ie_fix_end = new DOMComment( '[if IE 9]></video><![endif]' );
 
 		$image_sizes = get_intermediate_image_sizes();
-		$image_settings = array(
-			'base' => 'small',
-		);
 
 		// loop over the images, wrap them in a picture element and add responsive element siblings
 		foreach ( $images as $image )
@@ -161,7 +195,10 @@ class GO_ResponsiveImages
 
 			if ( preg_match( '/size-([^\s]+)/', $image_class, $matches ) )
 			{
-				$current_size = $matches[1];
+				if ( isset( $matches[1] ) && 'full' != $matches[1] )
+				{
+					$current_size = $matches[1];
+				}//end if
 			}//end if
 
 			// clone the picture node
@@ -173,41 +210,15 @@ class GO_ResponsiveImages
 			// start IE 9 fix (IE doesn't like <source> elements outside of the video tag
 			$cloned_picture_node->appendChild( $ie_fix_start->cloneNode() );
 
-			$large_source = $doc->createElement( 'source' );
+			$twiddled = $this->twiddle_image( $doc, $image, $image_id, $image_class, $parent_class, $cloned_picture_node );
 
-			// @TODO: drive this if/elseif from a config
-			if (
-				FALSE !== strpos( $parent_class, 'aligncenter' )
-				|| FALSE !== strpos( $image_class, 'aligncenter' )
-			)
+			// if the image wasn't successfully twiddled, we at least want to twiddle it enough to add image densities
+			if ( ! $twiddled && $current_size )
 			{
-				$large_source->setAttribute( 'srcset', $this->get_image_srcset( $image_id, 'story-breakout' ) );
-				$large_source->setAttribute( 'media', '(min-width: 641px)' );
-				$cloned_picture_node->appendChild( $large_source );
+				$default_size = wp_get_attachment_image_src( $image_id, $current_size );
+				$image->setAttribute( 'src', $default_size[0] );
+				$image->setAttribute( 'srcset', $this->get_image_srcset( $image_id, $current_size ) );
 			}//end if
-			elseif (
-				FALSE !== strpos( $image_class, 'alignleft' )
-				|| FALSE !== strpos( $image_class, 'alignright' )
-				|| FALSE !== strpos( $parent_class, 'alignleft' )
-				|| FALSE !== strpos( $parent_class, 'alignright' )
-			)
-			{
-				$large_source->setAttribute( 'srcset', $this->get_image_srcset( $image_id, 'story-cantilevered' ) );
-				$large_source->setAttribute( 'media', '(min-width: 970px)' );
-			}//end elseif
-
-			$cloned_picture_node->appendChild( $large_source );
-
-			$small_plus_source = $doc->createElement( 'source' );
-			$small_plus_source->setAttribute( 'srcset', $this->get_image_srcset( $image_id, 'story-small-plus' ) );
-			$small_plus_source->setAttribute( 'media', '(min-width: 321px)' );
-			$cloned_picture_node->appendChild( $small_plus_source );
-
-			$size = $current_size ?: 'story-small';
-			$default_size = wp_get_attachment_image_src( $image_id, $size );
-
-			$image->setAttribute( 'src', $default_size[0] );
-			$image->setAttribute( 'srcset', $this->get_image_srcset( $image_id, $size ) );
 
 			// end IE 9 fix (IE doesn't like <source> elements outside of the video tag
 			$cloned_picture_node->appendChild( $ie_fix_end->cloneNode() );
@@ -233,6 +244,72 @@ class GO_ResponsiveImages
 
 		return $content;
 	}//end the_content
+
+	/**
+	 * Injects picture <source> elements with srcset densities AND adjusts the src and srcset of the img tag
+	 *
+	 * @param DOMDocument $doc Document object created from the snippet of code we're switching images over to picture elements
+	 * @param DOMNode $image Image found in the DOMDocument that we're attempting to replace
+	 * @param int $image_id WP Post ID for the image
+	 * @param string $image_class The contents of the img class attribute
+	 * @param string $parent_class The contents of the img's parent (or grandparent if the immediate parent is an anchor tag)
+	 * @param DOMNode $picture_node The picture node to add items to
+	 */
+	public function twiddle_image( $doc, $image, $image_id, $image_class, $parent_class, $picture_node )
+	{
+		$twiddled = FALSE;
+
+		// if there aren't any sources by class specified or the config is malformed, don't twiddle the image here
+		if ( ! $this->config( 'sources-by-class' ) || ! is_array( $this->config( 'sources-by-class' ) ) )
+		{
+			return;
+		}//end if
+
+		// loop over sources-by-class and determine how to twiddle the image
+		foreach ( $this->config( 'sources-by-class' ) as $targets => $sources )
+		{
+			$targets = explode( ',', $targets );
+
+			$match = FALSE;
+
+			foreach ( $targets as $target )
+			{
+				if ( FALSE !== strpos( $parent_class, $target ) || FALSE !== strpos( $image_class, $target ) )
+				{
+					$match = TRUE;
+					break;
+				}//end if
+			}//end foreach
+
+			// if the image doesn't match what we're looking for,
+			if ( ! $match )
+			{
+				continue;
+			}//end if
+
+			$source = $doc->createElement( 'source' );
+
+			foreach ( $sources as $media => $size )
+			{
+				if ( 'base' == $media )
+				{
+					$default_size = wp_get_attachment_image_src( $image_id, $size );
+					$image->setAttribute( 'src', $default_size[0] );
+					$image->setAttribute( 'srcset', $this->get_image_srcset( $image_id, $size ) );
+					continue;
+				}//end if
+
+				$source_clone = $source->cloneNode();
+				$source_clone->setAttribute( 'srcset', $this->get_image_srcset( $image_id, $size ) );
+				$source_clone->setAttribute( 'media', $media );
+				$picture_node->appendChild( $source_clone );
+			}//end foreach
+
+			$twiddled = TRUE;
+		}//end foreach
+
+		return $twiddled;
+	}//end twiddle_image
 
 	/**
 	 * Build a srcset density string
