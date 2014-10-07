@@ -55,7 +55,7 @@ class GO_ResponsiveImages
 
 		wp_register_script(
 			'picturefill',
-			plugins_url( 'js/lib/external/picturefill.js', __FILE__ ),
+			plugins_url( 'js/min/external/picturefill.js', __FILE__ ),
 			array(),
 			$script_config['version']
 		);
