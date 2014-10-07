@@ -18,7 +18,6 @@ class GO_ResponsiveImages
 	 */
 	public function init()
 	{
-		$this->register_image_sizes();
 		$this->register_density_image_sizes();
 	}//end init
 
@@ -35,15 +34,6 @@ class GO_ResponsiveImages
 
 		wp_enqueue_script( 'picturefill' );
 	}//end wp_enqueue_scripts
-
-	public function register_image_sizes()
-	{
-		// @TODO: declare these in a config
-		add_image_size( 'story-cantilevered', 300 );
-		add_image_size( 'story-small', 320 );
-		add_image_size( 'story-small-plus', 640 );
-		add_image_size( 'story-breakout', 804 );
-	}//end register_image_sizes
 
 	/**
 	 * registers higher density image sizes (2x and 3x) for all already registered image sizes
@@ -109,6 +99,10 @@ class GO_ResponsiveImages
 			return $content;
 		}//end if
 
+		// disable the ability to load external entities. See: http://wordpress.tv/2013/08/09/mike-adams-three-security-issues-you-thought-youd-fixed/
+
+		libxml_disable_entity_loader( TRUE );
+
 		$doc = new DOMDocument();
 		try
 		{
@@ -119,8 +113,6 @@ class GO_ResponsiveImages
 			// unable to parse the content. Let's not do responsive images then.
 			return $content;
 		}//end catch
-
-		$xpath = new DOMXpath( $doc );
 
 		$images = $doc->getElementsByTagName( 'img' );
 
@@ -213,7 +205,6 @@ class GO_ResponsiveImages
 
 			$size = $current_size ?: 'story-small';
 			$default_size = wp_get_attachment_image_src( $image_id, $size );
-			do_action( 'debug_robot', $size . ' :: ' . print_r( $default_size, TRUE ) );
 
 			$image->setAttribute( 'src', $default_size[0] );
 			$image->setAttribute( 'srcset', $this->get_image_srcset( $image_id, $size ) );
@@ -251,7 +242,6 @@ class GO_ResponsiveImages
 		$size_1x = wp_get_attachment_image_src( $image_id, $image_size );
 		$size_2x = wp_get_attachment_image_src( $image_id, "{$image_size}_go_responsiveimages_density_2x" );
 		$size_3x = wp_get_attachment_image_src( $image_id, "{$image_size}_go_responsiveimages_density_3x" );
-		do_action( 'debug_robot', print_r( $size_1x, TRUE ) );
 
 		return "{$size_1x[0]}, {$size_2x[0]} 2x, {$size_3x[0]} 3x";
 	}//end get_image_srcset
