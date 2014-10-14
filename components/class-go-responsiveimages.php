@@ -13,7 +13,9 @@ class GO_ResponsiveImages
 		add_action( 'init', array( $this, 'init' ) );
 		add_action( 'admin_init', array( $this, 'init' ) );
 		add_action( 'wp_enqueue_scripts', array( $this, 'wp_enqueue_scripts' ) );
-		add_filter( 'the_content', array( $this, 'the_content' ), 99 );
+
+		// this is hooked to 1 because it is the base function for the filter
+		add_filter( 'go_responsiveimages_replace_images', array( $this, 'replace_images' ), 1, 1 );
 	}//end __construct
 
 	/**
@@ -117,9 +119,9 @@ class GO_ResponsiveImages
 	}//end register_density_image_sizes
 
 	/**
-	 * hooked to the the_content filter to swap out images for responsive ones
+	 * Alters content to replace img tags with responsive <picture> tags
 	 */
-	public function the_content( $content )
+	public function replace_images( $content )
 	{
 		// Don't load for feeds, previews, and attachment pages
 		if ( is_preview() || is_feed() || is_attachment() )
@@ -233,7 +235,7 @@ class GO_ResponsiveImages
 		$content = preg_replace( '#((^<body>)|(</body>$))#', '', $doc->saveHTML( $body ) );
 
 		return $content;
-	}//end the_content
+	}//end replace_images
 
 	/**
 	 * Injects picture <source> elements with srcset densities AND adjusts the src and srcset of the img tag
