@@ -13,7 +13,7 @@ Hooking to `the_content` can be expensive, so this plugin _does not_ do that. In
 
 Example usage:
 
-```
+```php
 ob_start();
 the_content();
 $content = ob_get_clean();
@@ -23,7 +23,7 @@ echo apply_filters( 'go_responsiveimages_replace_images', $content );
 
 By default, the `<img>` tag gets replaced with a `<picture>` element and a `srcset` attribute specifying 2x and 3x densities, like so:
 
-```
+```html
 <picture>
   <img srcset="path/to/image.png, path/to/image-2x.png 2x, path/to/image-3x.png 3x" src="path/to/image.png">
 </picture>
@@ -39,7 +39,7 @@ Here's an example config filter that serves different images sizes (that exist i
 * Medium: `( min-width: 641px )`
 * Small: `default`
 
-```
+```php
 add_filter( 'go_config', function( $config, $which_config ) {
   // only run the filter if it is a go-responsiveimages config.
   if ( 'go-responsiveimages' != $which_config ) {
@@ -66,7 +66,7 @@ add_filter( 'go_config', function( $config, $which_config ) {
 
 Result:
 
-```
+```html
 <picture>
   <!--[if IE 9]><video style="display: none;"><![endif]-->
   <source srcset="http://url/to/large-size-image.png, http://url/to/large-size-image-doublesize.png 2x, http://url/to/large-size-image-triplesize.png 3x" media="(min-width:960px)">
