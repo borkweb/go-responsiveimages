@@ -132,6 +132,7 @@ class GO_ResponsiveImages
 		// disable the ability to load external entities. See: http://wordpress.tv/2013/08/09/mike-adams-three-security-issues-you-thought-youd-fixed/
 		libxml_disable_entity_loader( TRUE );
 
+		// we're wrapping the content in an html/body tag with a charset meta tag to ensure proper UTF-8 encoding
 		$content = '<html><meta http-equiv="content-type" content="text/html; charset=UTF-8"><body>' . $content . '</body></html>';
 		$doc = new DOMDocument( '1.0', 'UTF-8' );
 		try
