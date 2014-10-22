@@ -132,7 +132,9 @@ class GO_ResponsiveImages
 		// disable the ability to load external entities. See: http://wordpress.tv/2013/08/09/mike-adams-three-security-issues-you-thought-youd-fixed/
 		libxml_disable_entity_loader( TRUE );
 
-		$doc = new DOMDocument();
+		// we're wrapping the content in an html/body tag with a charset meta tag to ensure proper UTF-8 encoding
+		$content = '<html><meta http-equiv="content-type" content="text/html; charset=UTF-8"><body>' . $content . '</body></html>';
+		$doc = new DOMDocument( '1.0', 'UTF-8' );
 		try
 		{
 			$doc->loadHTML( $content );
@@ -322,6 +324,9 @@ class GO_ResponsiveImages
 		$original_image_url = $image_url;
 
 		$image_url = preg_replace( '/^(.+?)(-\d+x\d+)?\.(jpg|jpeg|png|gif)((?:\?|#).+)?$/i', '$1.$3', $image_url );
+
+		// Filter the image URL to handle cases where the URL may be different due to a CDN
+		$image_url = apply_filters( 'go_responsiveimages_image_url', $image_url );
 
 		if ( ! ( $attachment_id = wp_cache_get( $image_url, $this->attachment_id_cache_group ) ) )
 		{
