@@ -13,9 +13,6 @@ class GO_ResponsiveImages
 		add_action( 'init', array( $this, 'init' ) );
 		add_action( 'admin_init', array( $this, 'init' ) );
 		add_action( 'wp_enqueue_scripts', array( $this, 'wp_enqueue_scripts' ) );
-
-		// this is hooked to 1 because it is the base function for the filter
-		add_filter( 'go_responsiveimages_replace_images', array( $this, 'replace_images' ), 1, 1 );
 	}//end __construct
 
 	/**
@@ -133,11 +130,11 @@ class GO_ResponsiveImages
 		libxml_disable_entity_loader( TRUE );
 
 		// we're wrapping the content in an html/body tag with a charset meta tag to ensure proper UTF-8 encoding
-		$content = '<html><meta http-equiv="content-type" content="text/html; charset=UTF-8"><body>' . $content . '</body></html>';
+		$wrapped_content = '<html><head><meta http-equiv="content-type" content="text/html; charset=UTF-8"></head><body>' . $content . '</body></html>';
 		$doc = new DOMDocument( '1.0', 'UTF-8' );
 		try
 		{
-			$doc->loadHTML( $content );
+			$doc->loadHTML( $wrapped_content );
 		}//end try
 		catch( Exception $e )
 		{
@@ -232,11 +229,17 @@ class GO_ResponsiveImages
 
 		// get the one and only body element
 		$body = $body->item( 0 );
+		$new_content = $doc->saveHTML( $body );
+
+		if ( ! $new_content )
+		{
+			return $content;
+		}//end if
 
 		// replace the opening and closing body tag from the source
-		$content = preg_replace( '#((^<body>)|(</body>$))#', '', $doc->saveHTML( $body ) );
+		$new_content = preg_replace( '#((^<body>)|(</body>$))#', '', $new_content );
 
-		return $content;
+		return $new_content;
 	}//end replace_images
 
 	/**
