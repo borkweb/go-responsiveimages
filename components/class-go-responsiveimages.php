@@ -126,6 +126,12 @@ class GO_ResponsiveImages
 			return $content;
 		}//end if
 
+		//support liveblog
+		if ( method_exists( 'WPCOM_Liveblog', 'is_liveblog_post' ) && WPCOM_Liveblog::is_liveblog_post() )
+		{
+			return $content;
+		}//end if
+
 		// disable the ability to load external entities. See: http://wordpress.tv/2013/08/09/mike-adams-three-security-issues-you-thought-youd-fixed/
 		libxml_disable_entity_loader( TRUE );
 
