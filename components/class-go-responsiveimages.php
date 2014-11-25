@@ -161,14 +161,22 @@ class GO_ResponsiveImages
 		foreach ( $images as $image )
 		{
 			$image_url = $image->getAttribute( 'src' );
-			$image_id = $this->url_to_attachment_id( $image_url );
+			$image_class = $image->getAttribute( 'class' );
+
+			preg_match( '/wp-image-([\d]+)/', $image_class, $matches );
+
+			$image_id = 0;
+
+			if ( ! empty( $matches[1] ) )
+			{
+				$image_id = absint( $matches[1] );
+			}//end if
 
 			if ( ! $image_id )
 			{
 				continue;
 			}//end if
 
-			$image_class = $image->getAttribute( 'class' );
 			$parent_class = '';
 
 			if ( $image_parent = $image->parentNode )
@@ -319,35 +327,6 @@ class GO_ResponsiveImages
 
 		return "{$size_1x[0]}, {$size_2x[0]} 2x, {$size_3x[0]} 3x";
 	}//end get_image_srcset
-
-	public function url_to_attachment_id( $image_url )
-	{
-		global $wpdb;
-
-		$original_image_url = $image_url;
-
-		$image_url = preg_replace( '/^(.+?)(-\d+x\d+)?\.(jpg|jpeg|png|gif)((?:\?|#).+)?$/i', '$1.$3', $image_url );
-
-		// Filter the image URL to handle cases where the URL may be different due to a CDN
-		$image_url = apply_filters( 'go_responsiveimages_image_url', $image_url );
-
-		if ( ! ( $attachment_id = wp_cache_get( $image_url, $this->attachment_id_cache_group ) ) )
-		{
-			$sql = "SELECT ID FROM {$wpdb->prefix}posts WHERE guid = '%s'";
-			$attachment_id = $wpdb->get_col( $wpdb->prepare( $sql, $image_url ) );
-
-			if ( empty( $attachment_id ) )
-			{
-				$attachment_id = $wpdb->get_col( $wpdb->prepare( $sql, $original_image_url ) );
-			}//end if
-
-			$attachment_id = empty( $attachment_id ) ? NULL : $attachment_id[0];
-
-			wp_cache_set( $image_url, $attachment_id, $this->attachment_id_cache_group );
-		}//end if
-
-		return $attachment_id;
-	}//end url_to_attachment_id
 }//end class
 
 function go_responsiveimages()
