@@ -1,11 +1,11 @@
 <?php
 /**
- * Plugin Name: Gigaom Responsive Images
- * Plugin URI: http://gigaom.com
+ * Plugin Name: Go Responsive Images
+ * Plugin URI: http://borkweb.com
  * Description: Turns image markup within a post into responsive image markup
  * Version: 1.0
- * Author: Gigaom
- * Author URI: http://gigaom.com
+ * Author: Matthew Batchelder
+ * Author URI: http://borkweb.com
  * License: GPL2
  */
 
